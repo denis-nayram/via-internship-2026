@@ -413,3 +413,33 @@ Host script results:
   visibility into all 7 hosted databases — a complete compromise of the database layer.
 
 ---
+## Exploit 9: rlogin Trust-Based Root Login
+
+- **Service / Port:** rlogin / 513
+- **Vulnerability:** No CVE — a trust-relationship misconfiguration. The target's `.rhosts`/hosts.equiv
+  configuration trusts incoming rlogin connections (in this case, as root) without requiring any
+  password at all, based purely on the claimed source host/username.
+- **Tool Used:** Native `rlogin` command-line client (no Metasploit module needed).
+- **Why This Tool:** Nmap identified an open rlogin service on port 513. This is not a software bug
+  or a weak password to crack — it's an inherently trust-based protocol, so demonstrating the
+  vulnerability means simply using the protocol as designed and observing that no authentication
+  challenge occurs at all. No exploit module is needed or applicable here.
+- **Steps:**
+  1. `nmap -sV -sC 192.168.1.3` — identified an open rlogin service on port 513 (Reconnaissance)
+  2. `rlogin -l root 192.168.1.3` — attempted to log in as root via rlogin (Delivery)
+  3. The target granted an interactive root shell immediately, with no password prompt whatsoever
+     (Exploitation — the trust-based authentication model accepted the connection outright)
+  4. `whoami`, `id`, `uname -a` confirmed full root access (Actions on Objectives)
+- **Evidence:** evidence/exploit9.png
+- **Cyber Kill Chain Stage(s):** Reconnaissance, Delivery, Exploitation, Actions on Objectives
+  - **Reconnaissance:** nmap identified the exposed rlogin service.
+  - **Delivery:** initiating the rlogin connection claiming the root identity.
+  - **Exploitation:** the misconfigured trust relationship granting access with no credential check.
+  - **Actions on Objectives:** confirming full root access via whoami/id/uname -a.
+  - *(No Weaponization/Installation/C2 — this is a direct protocol-level trust bypass, not a
+    delivered payload or persistent foothold; the interactive rlogin session itself is the access.)*
+- **Outcome / Impact:** Immediate, fully unauthenticated root access — no password, no exploit
+  code, no vulnerability to trigger. This demonstrates that misconfigured trust relationships can
+  be more severe and easier to abuse than actual software vulnerabilities.
+
+---
