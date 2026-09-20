@@ -481,3 +481,37 @@ Host script results:
   than a shell) from every other entry.
 
 ---
+## Kill Chain Coverage Summary
+
+| Exploit | Recon | Weaponization | Delivery | Exploitation | Installation | C2 | Actions on Objectives |
+|---|---|---|---|---|---|---|---|
+| 1. vsftpd 2.3.4 Backdoor | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| 2. Samba usermap_script | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| 3. UnrealIRCd Backdoor | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| 4. Anonymous FTP Login | ✔ | | ✔ | ✔ | | | ✔ |
+| 5. Telnet Weak Credentials | ✔ | | ✔ | ✔ | | | ✔ |
+| 6. PostgreSQL Default Creds | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| 7. Tomcat Manager WAR Upload | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| 8. MySQL Blank Root Password | ✔ | | ✔ | ✔ | | | ✔ |
+| 9. rlogin Trust-Based Login | ✔ | | ✔ | ✔ | | | ✔ |
+| 10. VNC Weak Password | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+
+---
+
+## Lessons Learned / Mitigations
+
+1. **vsftpd 2.3.4 Backdoor / UnrealIRCd Backdoor:** Never run software from unverified or
+   compromised distribution sources. Both backdoors were introduced by attackers tampering with
+   official-looking source packages. Mitigation: verify checksums/signatures on downloaded
+   software, and keep services patched to current, actively-maintained versions.
+
+2. **Weak/Default Credentials (Telnet, PostgreSQL, MySQL, VNC, Tomcat):** The majority of exploits
+   in this set succeeded purely because default or trivially guessable credentials were never
+   changed after installation. Mitigation: enforce strong, unique passwords on every service at
+   deployment time, disable default accounts where possible, and use credential scanning tools
+   proactively to catch this before an attacker does.
+
+3. **rlogin Trust-Based Login:** Trust-based authentication (rhosts/hosts.equiv) should never be
+   used on any network where the source of a connection cannot be fully guaranteed. Mitigation:
+   disable rlogin/rsh entirely in favor of SSH with key-based authentication, which cryptographically
+   verifies identity rather than trusting a claimed source.
