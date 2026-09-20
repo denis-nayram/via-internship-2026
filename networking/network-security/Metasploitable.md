@@ -269,3 +269,35 @@ Host script results:
   files exposed would allow full unauthorized data disclosure.
 
 ---
+## Exploit 5: Telnet Weak Default Credentials
+
+- **Service / Port:** Telnet / 23
+- **Vulnerability:** No CVE — this is a weak-credential/misconfiguration issue. The target ships
+  with a well-known default account (`msfadmin`/`msfadmin`), and Telnet itself transmits the
+  entire login session, including the password, in plaintext with no encryption.
+- **Tool Used:** Built-in `telnet` command-line client (no Metasploit module needed).
+- **Why This Tool:** Nmap identified an open Telnet service on port 23. Since the target uses a
+  documented default credential rather than a software vulnerability, a direct login via the
+  standard telnet client is the correct approach — no exploit module is needed to bypass
+  authentication when the "vulnerability" is simply weak/default credentials.
+- **Steps:**
+  1. `nmap -sV -sC 192.168.1.3` — identified an open Telnet service on port 23 (Reconnaissance)
+  2. `telnet 192.168.1.3` — connected directly to the service (Delivery)
+  3. Logged in using the known default credentials `msfadmin` / `msfadmin` (Exploitation —
+     authentication succeeded using a weak, guessable/default credential)
+  4. `whoami`, `id`, `uname -a` confirmed a standard user shell was obtained (Actions on Objectives)
+- **Evidence:** evidence/exploit5.png
+- **Cyber Kill Chain Stage(s):** Reconnaissance, Delivery, Exploitation, Actions on Objectives
+  - **Reconnaissance:** nmap identified the open Telnet service ahead of the login attempt.
+  - **Delivery:** connecting to the service using the standard telnet client.
+  - **Exploitation:** successful authentication using a weak default credential, granting an
+    interactive shell.
+  - **Actions on Objectives:** confirming the access level obtained (a standard user, not root).
+  - *(No Weaponization/Installation/C2 — same reasoning as the anonymous FTP exploit: this is a
+    direct interactive login, not a delivered payload or persistent foothold.)*
+- **Outcome / Impact:** Interactive shell access as a standard user (`msfadmin`, uid 1000) via
+  weak default credentials transmitted in plaintext. Unlike Exploits 1–3, this does not grant
+  root directly — a real attacker would need a separate privilege escalation step from here to
+  reach full system control.
+
+---
