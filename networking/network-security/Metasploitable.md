@@ -376,3 +376,40 @@ Host script results:
   than a backdoor or a bare authentication bypass.
 
 ---
+## Exploit 8: MySQL Blank Root Password
+
+- **Service / Port:** MySQL / 3306
+- **Vulnerability:** No CVE — a weak-credential misconfiguration. The MySQL root account has no
+  password set at all, allowing unauthenticated administrative access to the database server.
+- **Tool Used:** Native `mysql` command-line client (`--skip-ssl` flag), after Metasploit's
+  `auxiliary/scanner/mysql/mysql_login` module failed due to a protocol incompatibility with this
+  MySQL version's old authentication handshake.
+- **Why This Tool:** Nmap identified MySQL 5.0.51a on port 3306. The Metasploit login-scanner
+  module returned a low-level protocol error (`scramble_length` mismatch) caused by version
+  incompatibility between the module and this old MySQL release, rather than any actual barrier
+  to access. Switching to the native `mysql` client (with `--skip-ssl`, since this legacy server
+  doesn't support the TLS negotiation modern clients attempt by default) connected cleanly,
+  demonstrating that a manual approach can succeed where an automated module hits compatibility
+  issues — and that troubleshooting the *tool*, not just the target, is sometimes part of the process.
+- **Steps:**
+  1. `nmap -sV -sC 192.168.1.3` — identified MySQL 5.0.51a-3ubuntu5 on port 3306 (Reconnaissance)
+  2. Attempted `auxiliary/scanner/mysql/mysql_login` in Metasploit; failed due to a protocol
+     version mismatch, not a credential failure (Weaponization attempt)
+  3. `mysql -h 192.168.1.3 -u root --skip-ssl` — connected directly with the native client,
+     disabling the SSL negotiation this legacy server doesn't support (Delivery)
+  4. Login succeeded immediately with no password prompt, confirming the blank root password
+     (Exploitation)
+  5. `SHOW DATABASES;` — listed all databases on the server, confirming real administrative
+     access (Actions on Objectives)
+- **Evidence:** evidence/exploit8.png
+- **Cyber Kill Chain Stage(s):** Reconnaissance, Delivery, Exploitation, Actions on Objectives
+  - **Reconnaissance:** nmap identified the exposed MySQL service and its version.
+  - **Delivery:** connecting to the service using the native MySQL client.
+  - **Exploitation:** the server granting root access with no password required.
+  - **Actions on Objectives:** listing all databases to confirm full administrative visibility.
+  - *(No Weaponization/Installation/C2 — similar to Exploits 4/5, this is a direct interactive
+    login using a legitimate client, not a delivered payload or persistent foothold.)*
+- **Outcome / Impact:** Full unauthenticated administrative access to the MySQL server, including
+  visibility into all 7 hosted databases — a complete compromise of the database layer.
+
+---
