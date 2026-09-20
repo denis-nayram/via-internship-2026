@@ -443,3 +443,41 @@ Host script results:
   be more severe and easier to abuse than actual software vulnerabilities.
 
 ---
+## Exploit 10: VNC Weak Password Authentication
+
+- **Service / Port:** VNC / 5900
+- **Vulnerability:** No CVE — a weak-credential misconfiguration. The VNC server is protected only
+  by the common default password `password`, and VNC's protocol version 3.3 here uses weak,
+  easily-brute-forced authentication with no account lockout.
+- **Tool Used:** Metasploit — auxiliary/scanner/vnc/vnc_login (to confirm the credential), then the
+  native `vncviewer` client (to establish and demonstrate an actual graphical session).
+- **Why This Tool:** Nmap identified an open VNC service on port 5900. The Metasploit module
+  efficiently confirms whether a candidate password is valid without needing a full graphical
+  connection first. Once confirmed, connecting with the native `vncviewer` client demonstrates the
+  real-world impact directly and visually — VNC grants full remote control of the target's desktop
+  environment, which is best shown with an actual screen capture rather than command-line output.
+- **Steps:**
+  1. `nmap -sV -sC 192.168.1.3` — identified an open VNC service (protocol 3.3) on port 5900 (Reconnaissance)
+  2. `msfconsole` then `search vnc_login` — found `auxiliary/scanner/vnc/vnc_login` (Weaponization)
+  3. `use auxiliary/scanner/vnc/vnc_login`, `set RHOSTS 192.168.1.3`, `set PASSWORD password`,
+     `set STOP_ON_SUCCESS true`, `run` — confirmed `password` as a valid credential (Delivery/Exploitation)
+  4. `vncviewer 192.168.1.3` — connected with the confirmed password (Installation/C2), opening a
+     live graphical session
+  5. The session showed an already-open root shell on the target's desktop, confirming full,
+     unrestricted graphical access as root (Actions on Objectives)
+- **Evidence:** evidence/exploit10.png
+- **Cyber Kill Chain Stage(s):** Reconnaissance, Weaponization, Delivery, Exploitation, Installation, C2, Actions on Objectives
+  - **Reconnaissance:** nmap identified the exposed VNC service.
+  - **Weaponization:** configuring the credential-testing module with the target password.
+  - **Delivery:** sending the authentication attempt to the VNC service.
+  - **Exploitation:** the weak password being accepted, granting session access.
+  - **Installation:** establishing the live VNC session itself as an ongoing connection to the target.
+  - **C2:** the open graphical session providing full, ongoing remote control of the target's desktop.
+  - **Actions on Objectives:** observing and using the live root desktop session, including its
+    already-open root terminal.
+- **Outcome / Impact:** Full unauthenticated graphical remote control of the target machine's
+  desktop as root — the most complete and visually confirmable form of access demonstrated across
+  all 10 exploits, closing out the set with a fundamentally different access vector (GUI rather
+  than a shell) from every other entry.
+
+---
