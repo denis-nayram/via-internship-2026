@@ -301,3 +301,37 @@ Host script results:
   reach full system control.
 
 ---
+## Exploit 6: PostgreSQL Default Credentials
+
+- **Service / Port:** PostgreSQL / 5432
+- **Vulnerability:** No CVE — a weak-credential misconfiguration. The target's PostgreSQL
+  installation uses the default account `postgres`/`postgres`, a widely known default that was
+  never changed after installation.
+- **Tool Used:** Metasploit — auxiliary/scanner/postgres/postgres_login
+- **Why This Tool:** Nmap identified PostgreSQL 8.3 running on port 5432. Rather than manually
+  scripting a connection attempt, this auxiliary module automates credential testing against the
+  service and, with `CreateSession true`, opens a live interactive database session on success —
+  letting the actual data access be demonstrated directly rather than just confirming a login worked.
+- **Steps:**
+  1. `nmap -sV -sC 192.168.1.3` — identified PostgreSQL 8.3.0-8.3.7 on port 5432 (Reconnaissance)
+  2. `msfconsole` then `search postgres_login` — found `auxiliary/scanner/postgres/postgres_login` (Weaponization)
+  3. `use 0`, `set RHOSTS 192.168.1.3`, `set USERNAME postgres`, `set PASSWORD postgres`,
+     `set STOP_ON_SUCCESS true`
+  4. `run` — confirmed the default credentials work (Delivery/Exploitation)
+  5. `set CreateSession true`, `run` again — opened a live PostgreSQL session (Installation/C2)
+  6. `sessions -i 1`, then `query "SELECT datname FROM pg_database;"` — ran a real SQL query,
+     confirming actual data access, not just a successful login (Actions on Objectives)
+- **Evidence:** evidence/exploit6.png (login), evidence/exploit6b.png (query result)
+- **Cyber Kill Chain Stage(s):** Reconnaissance, Weaponization, Delivery, Exploitation, Installation, C2, Actions on Objectives
+  - **Reconnaissance:** nmap identified the exposed PostgreSQL service and version.
+  - **Weaponization:** selecting and configuring the credential-testing module for this target.
+  - **Delivery:** sending the login attempt to the PostgreSQL service.
+  - **Exploitation:** the weak default credential being accepted as valid.
+  - **Installation:** the module opening a persistent interactive database session.
+  - **C2:** the live session allowing ongoing, repeatable command/query access to the target database.
+  - **Actions on Objectives:** running a real SQL query to extract actual data from the target.
+- **Outcome / Impact:** Full unauthenticated database access via default credentials, demonstrated
+  with a live SQL query returning real database names — proving actual data exposure, not just
+  theoretical login success.
+
+---
