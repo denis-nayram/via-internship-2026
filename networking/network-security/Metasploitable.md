@@ -237,3 +237,35 @@ Host script results:
   planted backdoor, on a service unrelated to the FTP or Samba vulnerabilities already exploited.
 
 ---
+## Exploit 4: Anonymous FTP Login
+
+- **Service / Port:** FTP / 21
+- **Vulnerability:** vsftpd 2.3.4 on this target is configured to accept anonymous logins
+  (no CVE — this is a misconfiguration, not a code vulnerability), granting unauthenticated
+  read access to the server's FTP directory.
+- **Tool Used:** Built-in `ftp` command-line client (no Metasploit module needed).
+- **Why This Tool:** Nmap's `ftp-anon` script had already flagged "Anonymous FTP login allowed"
+  during reconnaissance. Since this is a simple authentication bypass rather than a code-level
+  exploit, no exploit module is needed — the standard `ftp` client is sufficient to demonstrate
+  and use the misconfiguration directly, showing that not every finding requires a Metasploit
+  module to exploit.
+- **Steps:**
+  1. `nmap -sV -sC 192.168.1.3` — nmap's `ftp-anon` script flagged anonymous login as allowed (Reconnaissance)
+  2. `ftp 192.168.1.3` — connected directly to the FTP service (Delivery)
+  3. Logged in with username `anonymous` and a blank/arbitrary password (Exploitation — the
+     authentication check accepted access with no valid credentials)
+  4. `ls -la` — confirmed a real, browsable session was granted, listing the FTP root directory
+     with its actual ownership/permissions (Actions on Objectives)
+- **Evidence:** evidence/exploit4.png
+- **Cyber Kill Chain Stage(s):** Reconnaissance, Delivery, Exploitation, Actions on Objectives
+  - **Reconnaissance:** nmap's script scan identified the anonymous-login misconfiguration ahead of time.
+  - **Delivery:** connecting directly to the FTP service using the standard client.
+  - **Exploitation:** the server accepting an anonymous login as valid, bypassing real authentication.
+  - **Actions on Objectives:** browsing the granted directory to confirm the extent of access obtained.
+  - *(No Weaponization/Installation/C2 stage applies here — this is a direct, single-session
+    protocol-level access, not a payload delivery or persistent foothold.)*
+- **Outcome / Impact:** Unauthenticated read access to the FTP server's directory tree. In this
+  instance the directory was empty, but the same misconfiguration on a server with sensitive
+  files exposed would allow full unauthorized data disclosure.
+
+---
